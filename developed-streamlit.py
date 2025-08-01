@@ -9,26 +9,37 @@ page = st.sidebar.radio("Select One:",["Csv Uploader", "User Info Form", "Image 
 
 # CSV Uploader
 if page == "Csv Uploader":
-    st.title("Previewing Csv and LineChart")
+    st.title("Csv Uploader")
 
-    uploaded_file = st.file_uploader("Select a Csv file!", type=["csv"])
-    if uploaded_file:
-        try:
-            df = pd.read_csv(uploaded_file)
-            st.success("File uploaded!")
-            st.dataframe(df)
+    uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
 
-            numeric_cols = df.select_dtypes(include="number").columns.tolist()
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
 
-            if numeric_cols:
-                col = st.radio("Select Column!", numeric_cols)
-                st.line_chart(df[col])
-            else:
-                st.warning("Column not selected.")
-        except Exception as e:
-            st.error(f"Error In Reading File!{e}")
+        search_term = st.text_input("Search:")
+
+        if search_term:
+            df = df[df.apply(lambda row: row.astype(str).str.contains(search_term, case=False).any(), axis=1)]
+
+        sort_col = st.selectbox("Sort by column:", df.columns)
+        df = df.sort_values(by=sort_col)
+
+        rows_per_page = 10
+        total_pages = max((len(df) - 1) // rows_per_page + 1, 1)
+
+        if total_pages > 1:
+            page = st.slider("Select page", 1, total_pages, 1)
+        else:
+            page = 1
+
+        start = (page - 1) * rows_per_page
+        end = start + rows_per_page
+
+        st.caption(f"Showing page {page} of {total_pages} — Total rows: {len(df)}")
+
+        st.dataframe(df.iloc[start:end], use_container_width=True)
     else:
-        st.info("Select a Csv file To Start!")
+        st.warning("Please upload a CSV file to view the table.")
 
 
 
